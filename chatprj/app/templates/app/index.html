@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp</title>
+</head>
+
+<body>
+    <h1>Chatgroup Name : {{groupname}}</h1>
+    <div style="margin-bottom: 20px;">
+        {% for group in groups %}
+        <a href="{% url 'group' group %}"><button>{{group}}</button></a>
+        {% endfor %}
+    </div>
+    <textarea id="chat-log" cols="100" rows="20">
+        {% for chat in chats %}
+          {{chat.content}}
+        {% endfor %}
+    </textarea>
+    <br>
+    <input type="text" id="chat-message-input" size="100"> <br>
+    <input type="button" value="Send" id="chat-message-submit">
+    {{groupname|json_script:"group-name"}}
+    <script>
+        const groupName = JSON.parse(document.getElementById('group-name').textContent)
+        // var ws = new WebSocket('ws://127.0.0.1:8000/ws/ac/')
+        var ws = new WebSocket(
+            'ws://' + window.location.host + '/ws/sc/' + groupName + '/'
+        )
+        ws.onopen = function () {
+            console.log('Websocket open');
+        }
+        ws.onmessage = function (event) {
+            console.log('Message received from server', event.data);
+            const data = JSON.parse(event.data)
+            console.log(data.msg);
+            console.log(data.user);
+            document.querySelector('#chat-log').value += (data.msg + '-' + data.user + '\n')
+        }
+        ws.onclose = function (event) {
+            console.log('Websocket closed', event);
+        };
+
+        document.getElementById('chat-message-submit').onclick =
+            function (event) {
+                const messageInputDom = document.getElementById('chat-message-input')
+                const message = messageInputDom.value
+                ws.send(JSON.stringify({
+                    'msg': message
+                }))
+                messageInputDom.value = ''
+            }
+    </script>
+</body>
+
+</html>
